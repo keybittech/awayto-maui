@@ -1,0 +1,119 @@
+﻿@page "/deployment_accounts"
+
+@using AwaytoMAUI.Data
+@inject DeploymentAccountService DeploymentAccountServ
+
+
+<h3>Register Deployment Account</h3>
+
+<EditForm Model="@registration" OnValidSubmit="@OnFormSubmitted">
+	<DataAnnotationsValidator />
+	<ValidationSummary />
+	
+	<p>
+		<label>
+			Name:
+			<InputText @bind-Value="registration.Name" />
+		</label>
+	</p>
+	<p>
+		<label>
+			Key:
+			<InputText @bind-Value="registration.Key" />
+		</label>
+	</p>
+	<p>
+		<label>
+			Secret:
+			<InputTextArea @bind-Value="registration.Secret" />
+		</label>
+	</p>
+
+	<input type="submit" class="btn btn-primary" value="Save" />
+</EditForm>
+
+
+@if (accounts == null)
+{
+	<p><em>Loading...</em></p>
+}
+else
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Options</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var account in accounts)
+			{
+				var name = account;
+				<tr>
+					<td>@account</td>
+					<td>
+						<button @onclick="@(e => OnTestAccount(name))" class="btn btn-primary">Test @testResult</button>
+						<button @onclick="@(e => OnAccountDelete(name))" class="btn btn-danger float-end">x</button>
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@code {
+	private AWSAccount registration = new AWSAccount();
+	private List<string> accounts;
+	private string testResult = "";
+
+	protected override async Task OnInitializedAsync()
+	{
+		accounts = await DeploymentAccountServ.ListAccounts();
+	}
+
+	private async Task OnFormSubmitted(EditContext editContext)
+	{
+		bool formIsValid = editContext.Validate();
+		if (formIsValid)
+		{
+			try
+			{
+				DeploymentAccountServ.RegisterAccount(registration.Name, registration.Key, registration.Secret);
+				accounts = await DeploymentAccountServ.ListAccounts();
+			}
+			catch (Exception)
+			{
+
+				throw;
+			}
+		}
+	}
+
+	private async void OnAccountDelete(string account)
+	{
+		try
+		{
+			DeploymentAccountServ.UnregisterAccount(account);
+			accounts = await DeploymentAccountServ.ListAccounts();
+		}
+		catch (Exception)
+		{
+
+			throw;
+		}
+	}
+
+	private void OnTestAccount(string account)
+	{
+		try
+		{
+			testResult = DeploymentAccountServ.TestCredentials(account);
+		}
+		catch (Exception)
+		{
+			
+			throw;
+		}
+	}
+}
